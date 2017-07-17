@@ -1045,6 +1045,7 @@ public class Quester {
 	 *            See CustomObjective class
 	 */
 	public void finishObjective(Quest quest, String objective, ItemStack material, ItemStack delivery, Enchantment enchantment, EntityType mob, String player, NPC npc, Location location, DyeColor color, String pass, CustomObjective co) {
+		//TODO ItemStack material, is largely unnecessary as .name() can be obtained thru getQuestData(quest).blocksXXXX
 		Player p = getPlayer();
 		if (getCurrentStage(quest).objectiveOverride != null) {
 			if (testComplete(quest)) {
@@ -1062,34 +1063,44 @@ public class Quester {
 			}
 		} else if (objective.equalsIgnoreCase("damageBlock")) {
 			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("damage") + " " + prettyItemString(material.getType().name());
-			message = message + " " + material.getAmount() + "/" + material.getAmount();
+			String stack = getQuestData(quest).blocksDamaged.toString();
+			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
+			message = message + " " + amount + "/" + amount;
 			if (testComplete(quest)) {
 				quest.nextStage(this);
 			}
 		} else if (objective.equalsIgnoreCase("breakBlock")) {
 			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("break") + " " + prettyItemString(material.getType().name());
-			message = message + " " + material.getAmount() + "/" + material.getAmount();
+			String stack = getQuestData(quest).blocksBroken.toString();
+			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
+			message = message + " " + amount + "/" + amount;
 			p.sendMessage(message);
 			if (testComplete(quest)) {
 				quest.nextStage(this);
 			}
 		} else if (objective.equalsIgnoreCase("placeBlock")) {
 			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("place") + " " + prettyItemString(material.getType().name());
-			message = message + " " + material.getAmount() + "/" + material.getAmount();
+			String stack = getQuestData(quest).blocksPlaced.toString();
+			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
+			message = message + " " + amount + "/" + amount;
 			p.sendMessage(message);
 			if (testComplete(quest)) {
 				quest.nextStage(this);
 			}
 		} else if (objective.equalsIgnoreCase("useBlock")) {
 			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("use") + " " + prettyItemString(material.getType().name());
-			message = message + " " + material.getAmount() + "/" + material.getAmount();
+			String stack = getQuestData(quest).blocksUsed.toString();
+			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
+			message = message + " " + amount + "/" + amount;
 			p.sendMessage(message);
 			if (testComplete(quest)) {
 				quest.nextStage(this);
 			}
 		} else if (objective.equalsIgnoreCase("cutBlock")) {
 			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("cut") + " " + prettyItemString(material.getType().name());
-			message = message + " " + material.getAmount() + "/" + material.getAmount();
+			String stack = getQuestData(quest).blocksCut.toString();
+			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
+			message = message + " " + amount + "/" + amount;
 			p.sendMessage(message);
 			if (testComplete(quest)) {
 				quest.nextStage(this);
@@ -1857,6 +1868,7 @@ public class Quester {
 			for (String s : completedTimes.keySet()) {
 				questTimeNames.add(s);
 				questTimes.add(completedTimes.get(s));
+				System.out.println("Saving = " + s + "  " + completedTimes.get(s));
 			}
 			data.set("completedRedoableQuests", questTimeNames);
 			data.set("completedQuestTimes", questTimes);
@@ -1899,21 +1911,18 @@ public class Quester {
 			return false;
 		}
 		hardClear();
-        if (data.contains("completedRedoableQuests") && data.contains("completedQuestTimes")) {
-            List<String> redoableQuestNames = data.getStringList("completedRedoableQuests");
-            List<Object> redoableQuestTimes = (List<Object>) data.getList("completedQuestTimes");
-
-            if (redoableQuestNames.size() != redoableQuestTimes.size()) {
-                plugin.getLogger().log(Level.WARNING, "completedRedoableQuests has " + redoableQuestNames.size() + " Entries but completedQuestTimes has " + redoableQuestTimes.size() + " Entries for player " + id.toString() + ". This will cause errors, trying to prevent complete data loss now.");
-            }
-
-            for (int i = 0; i < redoableQuestNames.size(); i++) {
-                if (i < redoableQuestTimes.size())
-                    completedTimes.put(redoableQuestNames.get(i), (Long) redoableQuestTimes.get(i));
-                else
-                    completedTimes.put(redoableQuestNames.get(i), System.currentTimeMillis()); // This will cause the cooldown to be reset but at least, the rest of the data does not get lost
-            }
-        }
+		if (data.contains("completedRedoableQuests")) {
+			List<String> redoNames = data.getStringList("completedRedoableQuests");
+			List<Long> redoTimes = data.getLongList("completedQuestTimes");
+			for (String s : redoNames) {
+				for (Quest q : plugin.quests) {
+					if (q.name.equalsIgnoreCase(s)) {
+						completedTimes.put(q.name, redoTimes.get(redoNames.indexOf(s)));
+						break;
+					}
+				}
+			}
+		}
 		if (data.contains("amountsCompletedQuests")) {
 			List<String> list1 = data.getStringList("amountsCompletedQuests");
 			List<Integer> list2 = data.getIntegerList("amountsCompleted");
