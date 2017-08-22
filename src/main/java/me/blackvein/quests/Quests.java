@@ -22,7 +22,7 @@ import java.util.UUID;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -124,6 +124,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 	public boolean allowCommands = true;
 	public boolean allowCommandsForNpcQuests = false;
 	public boolean showQuestReqs = true;
+	public boolean showQuestTitles = true;
 	public boolean allowQuitting = true;
 	public boolean convertData = false;
 	public boolean load = false;
@@ -408,6 +409,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 		allowCommands = config.getBoolean("allow-command-questing", true);
 		allowCommandsForNpcQuests = config.getBoolean("allow-command-quests-with-npcs", false);
 		showQuestReqs = config.getBoolean("show-requirements", true);
+		showQuestTitles = config.getBoolean("show-titles", true);
 		allowQuitting = config.getBoolean("allow-quitting", true);
 		useCompass = config.getBoolean("use-compass", true);
 		genFilesOnJoin = config.getBoolean("generate-files-on-join", true);
@@ -1115,7 +1117,6 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 				cs.sendMessage(ChatColor.RED + Lang.get("questCmdNoPerms"));
 			}
 		} catch (NullPointerException npe) {
-			System.out.println("Please report this full error in Github ticket #130");
 			npe.printStackTrace();
 		}
 	}
@@ -1131,7 +1132,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 				quester.hardClear();
 				quester.saveData();
 				quester.updateJournal();
-				final File dataFolder = new File(this.getDataFolder(), "data/");
+				final File dataFolder = new File(this.getDataFolder(), "data" + File.separator);
 				final File found = new File(dataFolder, quester.id + ".yml");
 				found.delete();
 				addToBlacklist(quester.id);
@@ -1164,7 +1165,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 				quester.hardClear();
 				quester.saveData();
 				quester.updateJournal();
-				final File dataFolder = new File(this.getDataFolder(), "data/");
+				final File dataFolder = new File(this.getDataFolder(), "data" + File.separator);
 				final File found = new File(dataFolder, id + ".yml");
 				found.delete();
 				String msg = Lang.get("questReset");
@@ -1274,7 +1275,9 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 
 	private boolean questsInfo(final CommandSender cs) {
 		cs.sendMessage(ChatColor.GOLD + Lang.get("quests") + " " + this.getDescription().getVersion());
-		cs.sendMessage(ChatColor.GOLD + Lang.get("createdBy") + " " + ChatColor.DARK_RED + "Blackvein");
+		cs.sendMessage(ChatColor.GOLD + Lang.get("createdBy") + " " + ChatColor.DARK_RED + "Blackvein"
+				+ ChatColor.GOLD + " " + Lang.get("continuedBy") + " " + ChatColor.DARK_RED + "FlyingPikachu");
+		cs.sendMessage(ChatColor.DARK_AQUA + "" + ChatColor.UNDERLINE + "https://www.spigotmc.org/resources/quests.3711/");
 		return true;
 	}
 
@@ -1334,8 +1337,14 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 			for (String s : sortedMap.keySet()) {
 				int i = (Integer) sortedMap.get(s);
 				s = s.trim();
-				UUID id = UUID.fromString(s);
-				s = Bukkit.getOfflinePlayer(id).getName();
+				try {
+					UUID id = UUID.fromString(s);
+					s = Bukkit.getOfflinePlayer(id).getName();
+				} catch (IllegalArgumentException e) {
+					getLogger().warning("Invalid file name \"" + s + "\"in /data folder. Replace with player UUID"
+							+ " or start the plugin with the \"convert-data-on-startup\" enabled in config.yml");
+					break;
+				}
 				numPrinted++;
 				cs.sendMessage(ChatColor.YELLOW + String.valueOf(numPrinted) + ". " + s + " - " + ChatColor.DARK_PURPLE + i + ChatColor.YELLOW + " " + Lang.get("questPoints"));
 				if (numPrinted == topNumber) {
@@ -1870,42 +1879,35 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 	}
 
 	public void listQuests(Player player, int page) {
-		if (quests.size() < ((page * 8) - 7)) {
-			player.sendMessage(ChatColor.YELLOW + Lang.get("pageNotExist"));
-		} else {
-			player.sendMessage(ChatColor.GOLD + Lang.get("questsTitle"));
-			int numOrder = (page - 1) * 8;
-			if (numOrder == 0) {
-				numOrder = 1;
-			}
-			List<Quest> subQuests;
-			if (numOrder > 1) {
-				if (quests.size() >= (numOrder + 7)) {
-					subQuests = quests.subList((numOrder), (numOrder + 7));
-				} else {
-					subQuests = quests.subList((numOrder), quests.size());
-				}
-			} else if (quests.size() >= (numOrder + 7)) {
-				subQuests = quests.subList((numOrder - 1), (numOrder + 7));
-			} else {
-				subQuests = quests.subList((numOrder - 1), quests.size());
-			}
-			if (numOrder != 1) {
-				numOrder++;
-			}
-			for (Quest q : subQuests) {
-				player.sendMessage(ChatColor.YELLOW + Integer.toString(numOrder) + ". " + q.name);
-				numOrder++;
-			}
-			int numPages = quests.size() / 8;
-			if ((quests.size() % 8) > 0 || numPages == 0) {
-				numPages++;
-			}
-			String msg = Lang.get("pageFooter");
-			msg = msg.replaceAll("<current>", String.valueOf(page));
-			msg = msg.replaceAll("<all>", String.valueOf(numPages));
-			player.sendMessage(ChatColor.GOLD + msg);
-		}
+		 
+        int rows = 7;
+        if ((quests.size() + rows) < ((page * rows)) || quests.size() == 0) {
+            player.sendMessage(ChatColor.YELLOW + Lang.get("pageNotExist"));
+        } else {
+            player.sendMessage(ChatColor.GOLD + Lang.get("questsTitle"));
+            int fromOrder = (page - 1) * rows;
+ 
+            List<Quest> subQuests;
+ 
+            if (quests.size() >= (fromOrder + rows)) {
+                subQuests = quests.subList((fromOrder), (fromOrder + rows));
+            } else {
+                subQuests = quests.subList((fromOrder), quests.size());
+            }
+ 
+            fromOrder++;
+ 
+            for (Quest q : subQuests) {
+                player.sendMessage(ChatColor.YELLOW + Integer.toString(fromOrder) + ". " + q.name);
+                fromOrder++;
+            }
+            int numPages = (int) Math.ceil(((double) quests.size()) / ((double) rows));
+ 
+            String msg = Lang.get("pageFooter");
+            msg = msg.replaceAll("<current>", String.valueOf(page));
+            msg = msg.replaceAll("<all>", String.valueOf(numPages));
+            player.sendMessage(ChatColor.GOLD + msg);
+        }
 	}
 
 	public void reloadQuests() {
@@ -1935,7 +1937,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 		}
 		if (quester == null) {
 			if (!questerBlacklist.contains(id.toString())) {
-				getLogger().log(Level.WARNING, "Quester data for UUID \"" + id.toString() + "\" not stored. Attempting manual data retrieval..");
+				getLogger().log(Level.WARNING, "Quester data for UUID \"" + id.toString() + "\" not stored. Attempting manual data retrieval...");
 			}
 			quester = new Quester(this);
 			quester.id = id;
@@ -2779,10 +2781,12 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 								itemsToDeliver = config.getStringList("quests." + questName + ".stages.ordered." + s2 + ".items-to-deliver");
 								itemDeliveryTargetIds = config.getIntegerList("quests." + questName + ".stages.ordered." + s2 + ".npc-delivery-ids");
 								deliveryMessages.addAll(config.getStringList("quests." + questName + ".stages.ordered." + s2 + ".delivery-messages"));
+								int index = 0;
 								for (String item : itemsToDeliver) {
 									ItemStack is = ItemUtil.readItemStack("" + item);
+									int npcId = itemDeliveryTargetIds.get(index);
+									index++;
 									if (is != null) {
-										int npcId = itemDeliveryTargetIds.get(itemsToDeliver.indexOf(item));
 										NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
 										if (npc != null) {
 											oStage.itemsToDeliver.add(is);
@@ -3227,21 +3231,29 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 	public void loadEvents() {
 		YamlConfiguration config = new YamlConfiguration();
 		File eventsFile = new File(this.getDataFolder(), "events.yml");
-		try {
-			config.load(eventsFile);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (InvalidConfigurationException e) {
-			e.printStackTrace();
-		}
-		ConfigurationSection sec = config.getConfigurationSection("events");
-		for (String s : sec.getKeys(false)) {
-			Event event = Event.loadEvent(s, this);
-			if (event != null) {
-				events.add(event);
-			} else {
-				getLogger().log(Level.SEVERE, "Failed to load Event \"" + s + "\". Skipping.");
+		if (eventsFile.length() != 0) {
+			try {
+				config.load(eventsFile);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InvalidConfigurationException e) {
+				e.printStackTrace();
 			}
+			ConfigurationSection sec = config.getConfigurationSection("events");
+			if (sec != null) {
+				for (String s : sec.getKeys(false)) {
+					Event event = Event.loadEvent(s, this);
+					if (event != null) {
+						events.add(event);
+					} else {
+						getLogger().log(Level.SEVERE, "Failed to load Event \"" + s + "\". Skipping.");
+					}
+				}
+			} else {
+				getLogger().log(Level.SEVERE, "Could not find section \"events\" from events.yml. Skipping.");
+			}
+		} else {
+			getLogger().log(Level.WARNING, "Empty file events.yml was not loaded.");
 		}
 	}
 
@@ -3402,23 +3414,44 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 
 	public static Location getLocation(String arg) {
 		String[] info = arg.split(" ");
-		if (info.length != 4) {
+		
+		if (info.length < 4) {
 			return null;
 		}
+		
+		StringBuilder sb = new StringBuilder();
+		int index = 0;
+		
+		for (String s : info) {
+			try  {
+				Double.parseDouble(s);
+				break;
+			} catch (Exception e) {
+				if (index == 0) {
+					sb.append(s);
+				} else {
+					sb.append(" " + s);
+				}
+				index++;
+			}
+		}
+		
+		String world = sb.toString();
+		
 		double x;
 		double y;
 		double z;
 		try {
-			x = Double.parseDouble(info[1]);
-			y = Double.parseDouble(info[2]);
-			z = Double.parseDouble(info[3]);
-		} catch (NumberFormatException e) {
+			x = Double.parseDouble(info[index]);
+			y = Double.parseDouble(info[index + 1]);
+			z = Double.parseDouble(info[index + 2]);
+		} catch (Exception e) {
 			return null;
 		}
-		if (Bukkit.getServer().getWorld(info[0]) == null) {
+		if (Bukkit.getServer().getWorld(world) == null) {
 			return null;
 		}
-		Location finalLocation = new Location(Bukkit.getServer().getWorld(info[0]), x, y, z);
+		Location finalLocation = new Location(Bukkit.getServer().getWorld(world), x, y, z);
 		return finalLocation;
 	}
 
@@ -3614,7 +3647,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 
 	public static boolean removeItem(Inventory inventory, ItemStack is) {
 		int amount = is.getAmount();
-		HashMap<Integer, ? extends ItemStack> allItems = inventory.all(is);
+		HashMap<Integer, ? extends ItemStack> allItems = inventory.all(is.getType());
 		HashMap<Integer, Integer> removeFrom = new HashMap<Integer, Integer>();
 		int foundAmount = 0;
 		for (Map.Entry<Integer, ? extends ItemStack> item : allItems.entrySet()) {
@@ -3904,8 +3937,8 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 		int numQuesters = 0;
 		int succeeded = 0;
 		int failed = 0;
-		final File dataFolder = new File(this.getDataFolder(), "data/");
-		final File oldDataFolder = new File(this.getDataFolder(), "data/old/");
+		final File dataFolder = new File(this.getDataFolder(), "data" + File.separator);
+		final File oldDataFolder = new File(this.getDataFolder(), "data" + File.separator + "old" + File.separator);
 		if (oldDataFolder.exists() == false || oldDataFolder.exists() && oldDataFolder.isDirectory() == false) {
 			oldDataFolder.mkdir();
 		}
@@ -3952,7 +3985,7 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 							idMap = fetcher.call();
 						} catch (Exception ex) {
 							getLogger().severe("Error retrieving data from Mojang account database. Error log:");
-							Logger.getLogger(Quests.class.getName()).log(Level.SEVERE, null, ex);
+							ex.printStackTrace();
 							return;
 						}
 						for (Entry<String, UUID> entry : idMap.entrySet()) {
@@ -3982,7 +4015,8 @@ public class Quests extends JavaPlugin implements ConversationAbandonedListener 
 							}
 						}
 						getLogger().info("Conversion completed: " + converted + " Converted. " + failed + " Failed.");
-						getLogger().info("Old data files stored in /Quests/data/old");
+						getLogger().info("Old data files stored in " 
+								+ File.separator + "Quests" + File.separator + "data" + File.separator + "old");
 					}
 				});
 			} else {

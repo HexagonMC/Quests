@@ -603,7 +603,7 @@ public class PlayerListener implements Listener {
 		if (plugin.checkQuester(evt.getPlayer().getUniqueId()) == false) {
 			Quester quester = new Quester(plugin);
 			quester.id = evt.getPlayer().getUniqueId();
-			if (new File(plugin.getDataFolder(), "data/" + quester.id + ".yml").exists()) {
+			if (new File(plugin.getDataFolder(), "data" + File.separator + quester.id + ".yml").exists()) {
 				quester.loadData();
 			} else if (Quests.genFilesOnJoin) {
 				quester.saveData();
@@ -650,6 +650,12 @@ public class PlayerListener implements Listener {
 					currentStage.disconnectEvent.fire(quester, quest);
 				}
 			}
+			for (Integer timerId : quester.timers.keySet()) {
+				plugin.getServer().getScheduler().cancelTask(timerId);
+				quester.timers.get(timerId).failQuest(quester);
+				quester.timers.remove(timerId);
+			}
+
 			if (quester.hasData()) {
 				quester.saveData();
 			}
@@ -674,9 +680,11 @@ public class PlayerListener implements Listener {
 			}
 			if (isPlayer) {
 				Quester quester = plugin.getQuester(evt.getPlayer().getUniqueId());
-				for (Quest quest : quester.currentQuests.keySet()) {
-					if (quester.hasObjective(quest, "reachLocation")) {
-						quester.reachLocation(quest, evt.getTo());
+				if (quester != null) {
+					for (Quest quest : quester.currentQuests.keySet()) {
+						if (quester.hasObjective(quest, "reachLocation")) {
+							quester.reachLocation(quest, evt.getTo());
+						}
 					}
 				}
 			}

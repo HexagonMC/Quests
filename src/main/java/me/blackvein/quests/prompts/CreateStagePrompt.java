@@ -577,8 +577,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + " (" + Lang.get("noneSet") + ")\n";
 				} else {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + "\n";
-					for (Integer i : getBlockDurability(context)) {
-						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + i + "\n";
+					for (Short s : getBlockDurability(context)) {
+						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + s + "\n";
 					}
 				}
 				text += ChatColor.BLUE + "" + ChatColor.BOLD + "4" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("clear") + "\n";
@@ -625,12 +625,20 @@ public class CreateStagePrompt extends FixedSetPrompt {
 				} else {
 					two = 0;
 				}
-				if (one == two) {
-					if (context.getSessionData(pref + CK.S_BREAK_DURABILITY) == null) {
-						LinkedList<Integer> noEntry = new LinkedList<Integer>();
-						noEntry.add(0);
-						context.setSessionData(pref + CK.S_BREAK_DURABILITY, noEntry);
+				if (one == two) {					
+					int missing;
+					LinkedList<Short> elements;
+					if (context.getSessionData(pref + CK.S_BREAK_DURABILITY) != null) {
+						missing = one - ((List<Short>) context.getSessionData(pref + CK.S_BREAK_DURABILITY)).size();
+						elements = (LinkedList<Short>) context.getSessionData(pref + CK.S_BREAK_DURABILITY);
+					} else {
+						missing = one;
+						elements = new LinkedList<Short>();
 					}
+					for (int i = 0; i < missing; i++) {
+						elements.add((short) 0);
+					}
+					context.setSessionData(pref + CK.S_BREAK_DURABILITY, elements);
 					return new CreateStagePrompt(stageNum, questFactory, citizens);
 				} else {
 					context.getForWhom().sendRawMessage(ChatColor.RED + Lang.get("stageEditorListNotSameSize"));
@@ -651,8 +659,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 		}
 
 		@SuppressWarnings("unchecked")
-		private List<Integer> getBlockDurability(ConversationContext context) {
-			return (List<Integer>) context.getSessionData(pref + CK.S_BREAK_DURABILITY);
+		private List<Short> getBlockDurability(ConversationContext context) {
+			return (List<Short>) context.getSessionData(pref + CK.S_BREAK_DURABILITY);
 		}
 	}
 
@@ -709,7 +717,7 @@ public class CreateStagePrompt extends FixedSetPrompt {
 						if (Integer.parseInt(s) > 0) {
 							amounts.add(Integer.parseInt(s));
 						} else {
-							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditortNotGreaterThanZero"));
+							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditorNotGreaterThanZero"));
 							return new BreakBlockAmountsPrompt();
 						}
 					} catch (NumberFormatException e) {
@@ -727,20 +735,20 @@ public class CreateStagePrompt extends FixedSetPrompt {
 
 		@Override
 		public String getPromptText(ConversationContext context) {
-			return ChatColor.YELLOW + Lang.get("stageEditorBreakBlocksPrompt");
+			return ChatColor.YELLOW + Lang.get("stageEditorEnterBlockDurability");
 		}
 
 		@Override
 		public Prompt acceptInput(ConversationContext context, String input) {
 			if (input.equalsIgnoreCase(Lang.get("cmdCancel")) == false) {
 				String[] args = input.split(" ");
-				LinkedList<Integer> durability = new LinkedList<Integer>();
+				LinkedList<Short> durability = new LinkedList<Short>();
 				for (String s : args) {
 					try {
-						if (Integer.parseInt(s) > 0) {
-							durability.add(Integer.parseInt(s));
+						if (Short.parseShort(s) >= 0) {
+							durability.add(Short.parseShort(s));
 						} else {
-							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditortNotGreaterThanZero"));
+							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditorNotGreaterThanZero"));
 							return new BreakBlockDurabilityPrompt();
 						}
 					} catch (NumberFormatException e) {
@@ -786,8 +794,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + " (" + Lang.get("noneSet") + ")\n";
 				} else {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + "\n";
-					for (Integer i : getBlockDurability(context)) {
-						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + i + "\n";
+					for (Short s : getBlockDurability(context)) {
+						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + s + "\n";
 					}
 				}
 				text += ChatColor.BLUE + "" + ChatColor.BOLD + "4" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("clear") + "\n";
@@ -835,11 +843,19 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					two = 0;
 				}
 				if (one == two) {
-					if (context.getSessionData(pref + CK.S_DAMAGE_DURABILITY) == null) {
-						LinkedList<Integer> noEntry = new LinkedList<Integer>();
-						noEntry.add(0);
-						context.setSessionData(pref + CK.S_DAMAGE_DURABILITY, noEntry);
+					int missing;
+					LinkedList<Short> elements;
+					if (context.getSessionData(pref + CK.S_DAMAGE_DURABILITY) != null) {
+						missing = one - ((List<Short>) context.getSessionData(pref + CK.S_DAMAGE_DURABILITY)).size();
+						elements = (LinkedList<Short>) context.getSessionData(pref + CK.S_DAMAGE_DURABILITY);
+					} else {
+						missing = one;
+						elements = new LinkedList<Short>();
 					}
+					for (int i = 0; i < missing; i++) {
+						elements.add((short) 0);
+					}
+					context.setSessionData(pref + CK.S_DAMAGE_DURABILITY, elements);
 					return new CreateStagePrompt(stageNum, questFactory, citizens);
 				} else {
 					context.getForWhom().sendRawMessage(ChatColor.RED + Lang.get("stageEditorListNotSameSize"));
@@ -860,8 +876,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 		}
 
 		@SuppressWarnings("unchecked")
-		private List<Integer> getBlockDurability(ConversationContext context) {
-			return (List<Integer>) context.getSessionData(pref + CK.S_DAMAGE_DURABILITY);
+		private List<Short> getBlockDurability(ConversationContext context) {
+			return (List<Short>) context.getSessionData(pref + CK.S_DAMAGE_DURABILITY);
 		}
 	}
 
@@ -936,20 +952,20 @@ public class CreateStagePrompt extends FixedSetPrompt {
 
 		@Override
 		public String getPromptText(ConversationContext context) {
-			return ChatColor.YELLOW + Lang.get("stageEditorDamageBlocksPrompt");
+			return ChatColor.YELLOW + Lang.get("stageEditorEnterBlockDurability");
 		}
 
 		@Override
 		public Prompt acceptInput(ConversationContext context, String input) {
 			if (input.equalsIgnoreCase(Lang.get("cmdCancel")) == false) {
 				String[] args = input.split(" ");
-				LinkedList<Integer> durability = new LinkedList<Integer>();
+				LinkedList<Short> durability = new LinkedList<Short>();
 				for (String s : args) {
 					try {
-						if (Integer.parseInt(s) > 0) {
-							durability.add(Integer.parseInt(s));
+						if (Short.parseShort(s) >= 0) {
+							durability.add(Short.parseShort(s));
 						} else {
-							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditortNotGreaterThanZero"));
+							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditorNotGreaterThanZero"));
 							return new DamageBlockDurabilityPrompt();
 						}
 					} catch (NumberFormatException e) {
@@ -995,8 +1011,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + " (" + Lang.get("noneSet") + ")\n";
 				} else {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + "\n";
-					for (Integer i : getBlockDurability(context)) {
-						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + i + "\n";
+					for (Short s : getBlockDurability(context)) {
+						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + s + "\n";
 					}
 				}
 				text += ChatColor.BLUE + "" + ChatColor.BOLD + "4" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("clear") + "\n";
@@ -1044,11 +1060,19 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					two = 0;
 				}
 				if (one == two) {
-					if (context.getSessionData(pref + CK.S_PLACE_DURABILITY) == null) {
-						LinkedList<Integer> noEntry = new LinkedList<Integer>();
-						noEntry.add(0);
-						context.setSessionData(pref + CK.S_PLACE_DURABILITY, noEntry);
+					int missing;
+					LinkedList<Short> elements;
+					if (context.getSessionData(pref + CK.S_PLACE_DURABILITY) != null) {
+						missing = one - ((List<Short>) context.getSessionData(pref + CK.S_PLACE_DURABILITY)).size();
+						elements = (LinkedList<Short>) context.getSessionData(pref + CK.S_PLACE_DURABILITY);
+					} else {
+						missing = one;
+						elements = new LinkedList<Short>();
 					}
+					for (int i = 0; i < missing; i++) {
+						elements.add((short) 0);
+					}
+					context.setSessionData(pref + CK.S_PLACE_DURABILITY, elements);
 					return new CreateStagePrompt(stageNum, questFactory, citizens);
 				} else {
 					context.getForWhom().sendRawMessage(ChatColor.RED + Lang.get("stageEditorListNotSameSize"));
@@ -1069,8 +1093,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 		}
 
 		@SuppressWarnings("unchecked")
-		private List<Integer> getBlockDurability(ConversationContext context) {
-			return (List<Integer>) context.getSessionData(pref + CK.S_PLACE_DURABILITY);
+		private List<Short> getBlockDurability(ConversationContext context) {
+			return (List<Short>) context.getSessionData(pref + CK.S_PLACE_DURABILITY);
 		}
 	}
 
@@ -1145,20 +1169,20 @@ public class CreateStagePrompt extends FixedSetPrompt {
 
 		@Override
 		public String getPromptText(ConversationContext context) {
-			return ChatColor.YELLOW + Lang.get("stageEditorPlaceBlocksPrompt");
+			return ChatColor.YELLOW + Lang.get("stageEditorEnterBlockDurability");
 		}
 
 		@Override
 		public Prompt acceptInput(ConversationContext context, String input) {
 			if (input.equalsIgnoreCase(Lang.get("cmdCancel")) == false) {
 				String[] args = input.split(" ");
-				LinkedList<Integer> durability = new LinkedList<Integer>();
+				LinkedList<Short> durability = new LinkedList<Short>();
 				for (String s : args) {
 					try {
-						if (Integer.parseInt(s) > 0) {
-							durability.add(Integer.parseInt(s));
+						if (Short.parseShort(s) >= 0) {
+							durability.add(Short.parseShort(s));
 						} else {
-							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditortNotGreaterThanZero"));
+							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditorNotGreaterThanZero"));
 							return new PlaceBlockDurabilityPrompt();
 						}
 					} catch (NumberFormatException e) {
@@ -1204,8 +1228,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + " (" + Lang.get("noneSet") + ")\n";
 				} else {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + "\n";
-					for (Integer i : getBlockDurability(context)) {
-						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + i + "\n";
+					for (Short s : getBlockDurability(context)) {
+						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + s + "\n";
 					}
 				}
 				text += ChatColor.BLUE + "" + ChatColor.BOLD + "4" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("clear") + "\n";
@@ -1253,11 +1277,19 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					two = 0;
 				}
 				if (one == two) {
-					if (context.getSessionData(pref + CK.S_USE_DURABILITY) == null) {
-						LinkedList<Integer> noEntry = new LinkedList<Integer>();
-						noEntry.add(0);
-						context.setSessionData(pref + CK.S_USE_DURABILITY, noEntry);
+					int missing;
+					LinkedList<Short> elements;
+					if (context.getSessionData(pref + CK.S_USE_DURABILITY) != null) {
+						missing = one - ((List<Short>) context.getSessionData(pref + CK.S_USE_DURABILITY)).size();
+						elements = (LinkedList<Short>) context.getSessionData(pref + CK.S_USE_DURABILITY);
+					} else {
+						missing = one;
+						elements = new LinkedList<Short>();
 					}
+					for (int i = 0; i < missing; i++) {
+						elements.add((short) 0);
+					}
+					context.setSessionData(pref + CK.S_USE_DURABILITY, elements);
 					return new CreateStagePrompt(stageNum, questFactory, citizens);
 				} else {
 					context.getForWhom().sendRawMessage(ChatColor.RED + Lang.get("stageEditorListNotSameSize"));
@@ -1278,8 +1310,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 		}
 
 		@SuppressWarnings("unchecked")
-		private List<Integer> getBlockDurability(ConversationContext context) {
-			return (List<Integer>) context.getSessionData(pref + CK.S_USE_DURABILITY);
+		private List<Short> getBlockDurability(ConversationContext context) {
+			return (List<Short>) context.getSessionData(pref + CK.S_USE_DURABILITY);
 		}
 	}
 
@@ -1354,20 +1386,20 @@ public class CreateStagePrompt extends FixedSetPrompt {
 
 		@Override
 		public String getPromptText(ConversationContext context) {
-			return ChatColor.YELLOW + Lang.get("stageEditorUseBlocksPrompt");
+			return ChatColor.YELLOW + Lang.get("stageEditorEnterBlockDurability");
 		}
 
 		@Override
 		public Prompt acceptInput(ConversationContext context, String input) {
 			if (input.equalsIgnoreCase(Lang.get("cmdCancel")) == false) {
 				String[] args = input.split(" ");
-				LinkedList<Integer> durability = new LinkedList<Integer>();
+				LinkedList<Short> durability = new LinkedList<Short>();
 				for (String s : args) {
 					try {
-						if (Integer.parseInt(s) > 0) {
-							durability.add(Integer.parseInt(s));
+						if (Short.parseShort(s) >= 0) {
+							durability.add(Short.parseShort(s));
 						} else {
-							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditortNotGreaterThanZero"));
+							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditorNotGreaterThanZero"));
 							return new UseBlockDurabilityPrompt();
 						}
 					} catch (NumberFormatException e) {
@@ -1413,8 +1445,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + " (" + Lang.get("noneSet") + ")\n";
 				} else {
 					text += ChatColor.BLUE + "" + ChatColor.BOLD + "3" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("stageEditorSetBlockDurability") + "\n";
-					for (Integer i : getBlockDurability(context)) {
-						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + i + "\n";
+					for (Short s : getBlockDurability(context)) {
+						text += ChatColor.GRAY + "    - " + ChatColor.AQUA + s + "\n";
 					}
 				}
 				text += ChatColor.BLUE + "" + ChatColor.BOLD + "4" + ChatColor.RESET + ChatColor.YELLOW + " - " + Lang.get("clear") + "\n";
@@ -1462,11 +1494,19 @@ public class CreateStagePrompt extends FixedSetPrompt {
 					two = 0;
 				}
 				if (one == two) {
-					if (context.getSessionData(pref + CK.S_CUT_DURABILITY) == null) {
-						LinkedList<Integer> noEntry = new LinkedList<Integer>();
-						noEntry.add(0);
-						context.setSessionData(pref + CK.S_CUT_DURABILITY, noEntry);
+					int missing;
+					LinkedList<Short> elements;
+					if (context.getSessionData(pref + CK.S_CUT_DURABILITY) != null) {
+						missing = one - ((List<Short>) context.getSessionData(pref + CK.S_CUT_DURABILITY)).size();
+						elements = (LinkedList<Short>) context.getSessionData(pref + CK.S_CUT_DURABILITY);
+					} else {
+						missing = one;
+						elements = new LinkedList<Short>();
 					}
+					for (int i = 0; i < missing; i++) {
+						elements.add((short) 0);
+					}
+					context.setSessionData(pref + CK.S_CUT_DURABILITY, elements);
 					return new CreateStagePrompt(stageNum, questFactory, citizens);
 				} else {
 					context.getForWhom().sendRawMessage(ChatColor.RED + Lang.get("stageEditorListNotSameSize"));
@@ -1487,8 +1527,8 @@ public class CreateStagePrompt extends FixedSetPrompt {
 		}
 
 		@SuppressWarnings("unchecked")
-		private List<Integer> getBlockDurability(ConversationContext context) {
-			return (List<Integer>) context.getSessionData(pref + CK.S_CUT_DURABILITY);
+		private List<Short> getBlockDurability(ConversationContext context) {
+			return (List<Short>) context.getSessionData(pref + CK.S_CUT_DURABILITY);
 		}
 	}
 
@@ -1563,20 +1603,20 @@ public class CreateStagePrompt extends FixedSetPrompt {
 
 		@Override
 		public String getPromptText(ConversationContext context) {
-			return ChatColor.YELLOW + Lang.get("stageEditorCutBlocksPrompt");
+			return ChatColor.YELLOW + Lang.get("stageEditorEnterBlockDurability");
 		}
 
 		@Override
 		public Prompt acceptInput(ConversationContext context, String input) {
 			if (input.equalsIgnoreCase(Lang.get("cmdCancel")) == false) {
 				String[] args = input.split(" ");
-				LinkedList<Integer> durability = new LinkedList<Integer>();
+				LinkedList<Short> durability = new LinkedList<Short>();
 				for (String s : args) {
 					try {
-						if (Integer.parseInt(s) > 0) {
-							durability.add(Integer.parseInt(s));
+						if (Short.parseShort(s) >= 0) {
+							durability.add(Short.parseShort(s));
 						} else {
-							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditortNotGreaterThanZero"));
+							context.getForWhom().sendRawMessage(ChatColor.LIGHT_PURPLE + s + ChatColor.RED + " " + Lang.get("stageEditorNotGreaterThanZero"));
 							return new CutBlockDurabilityPrompt();
 						}
 					} catch (NumberFormatException e) {

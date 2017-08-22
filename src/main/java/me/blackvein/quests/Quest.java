@@ -64,8 +64,6 @@ public class Quest {
 	List<String> commands = new LinkedList<String>();
 	List<String> permissions = new LinkedList<String>();
 	LinkedList<ItemStack> itemRewards = new LinkedList<ItemStack>();
-	LinkedList<Integer> rpgItemRewardIDs = new LinkedList<Integer>();
-	LinkedList<Integer> rpgItemRewardAmounts = new LinkedList<Integer>();
 	List<String> mcmmoSkills = new LinkedList<String>();
 	List<Integer> mcmmoAmounts = new LinkedList<Integer>();
 	List<String> heroesClasses = new LinkedList<String>();
@@ -102,6 +100,9 @@ public class Quest {
 				completeQuest(q);
 			} else {
 				try {
+					if (q.getCurrentStage(this).finishEvent != null) {
+						q.getCurrentStage(this).finishEvent.fire(q, this);
+					}
 					setStage(q, q.currentQuests.get(this) + 1);
 				} catch (InvalidStageException e) {
 					e.printStackTrace();
@@ -163,9 +164,10 @@ public class Quest {
 		} else if (nextStage.locationsToReach != null && nextStage.locationsToReach.size() > 0) {
 			targetLocation = nextStage.locationsToReach.getFirst();
 		}
-		if (targetLocation != null && targetLocation.getWorld().equals(quester.getPlayer().getWorld())) {
-			// plugin.getLogger().info("Setting compass target for " + quester.getPlayer().getName() + " to " + targetLocation);
-			quester.getPlayer().setCompassTarget(targetLocation);
+		if (targetLocation != null) {
+			if (targetLocation.getWorld().equals(quester.getPlayer().getWorld())) {
+				quester.getPlayer().setCompassTarget(targetLocation);
+			}
 		}
 		return targetLocation != null;
 	}
@@ -233,7 +235,7 @@ public class Quest {
 					return false;
 				}
 			} else {
-				plugin.getLogger().warning("[Quests] Quester \"" + player.getName() + "\" attempted to take Quest \"" + name + "\", but the Custom Requirement \"" + s + "\" could not be found. Does it still exist?");
+				plugin.getLogger().warning("Quester \"" + player.getName() + "\" attempted to take Quest \"" + name + "\", but the Custom Requirement \"" + s + "\" could not be found. Does it still exist?");
 			}
 		}
 		if (quester.questPoints < questPointsReq) {
@@ -243,7 +245,6 @@ public class Quest {
 			return false;
 		}
 		for (String q : blockQuests) {
-			// TODO make sure this works
 			Quest questObject = new Quest();
 			questObject.name = q;
 			if (quester.completedQuests.contains(q) || quester.currentQuests.containsKey(questObject)) {
@@ -260,6 +261,12 @@ public class Quest {
 		q.completedQuests.add(name);
 		String none = ChatColor.GRAY + "- (" + Lang.get("none") + ")";
 		final String ps = Quests.parseString(finished, this);
+		for (Map.Entry<Integer, Quest> entry : q.timers.entrySet()) {
+			if (entry.getValue().getName().equals(getName())) {
+				plugin.getServer().getScheduler().cancelTask(entry.getKey());
+				q.timers.remove(entry.getKey());
+			}
+		}
 		org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, new Runnable() {
 
 			@Override
@@ -333,6 +340,12 @@ public class Quest {
 		complete = complete.replaceAll("<quest>", ChatColor.YELLOW + name + ChatColor.GOLD);
 		player.sendMessage(ChatColor.GOLD + complete);
 		player.sendMessage(ChatColor.GREEN + Lang.get("questRewardsTitle"));
+		if (plugin.showQuestTitles) {
+			Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "title " + player.getName()
+					+ " title " + "{\"text\":\"" + Lang.get("quest") + " " + Lang.get("complete") +  "\",\"color\":\"gold\"}");
+			Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "title " + player.getName()
+					+ " subtitle " + "{\"text\":\"" + name + "\",\"color\":\"yellow\"}");
+		}
 		if (questPoints > 0) {
 			player.sendMessage("- " + ChatColor.DARK_GREEN + questPoints + " " + Lang.get("questPoints"));
 			q.questPoints += questPoints;
@@ -423,13 +436,17 @@ public class Quest {
 			if (found != null) {
 				Map<String, Object> datamap = customRewards.get(found.getName());
 				String message = found.getRewardName();
-				for (String key : datamap.keySet()) {
-					message = message.replaceAll("%" + ((String) key) + "%", ((String) datamap.get(key)));
+				if (message != null) {
+					for (String key : datamap.keySet()) {
+						message = message.replaceAll("%" + ((String) key) + "%", ((String) datamap.get(key)));
+					}
+					player.sendMessage("- " + ChatColor.GOLD + message);
+				} else {
+					plugin.getLogger().warning("Failed to notify player: Custom Reward does not have an assigned name");
 				}
-				player.sendMessage("- " + ChatColor.GOLD + message);
 				found.giveReward(player, customRewards.get(s));
 			} else {
-				plugin.getLogger().warning("[Quests] Quester \"" + player.getName() + "\" completed the Quest \"" + name + "\", but the Custom Reward \"" + s + "\" could not be found. Does it still exist?");
+				plugin.getLogger().warning("Quester \"" + player.getName() + "\" completed the Quest \"" + name + "\", but the Custom Reward \"" + s + "\" could not be found. Does it still exist?");
 			}
 			none = null;
 		}
@@ -508,12 +525,6 @@ public class Quest {
 				return false;
 			}
 			if (other.itemRewards.equals(itemRewards) == false) {
-				return false;
-			}
-			if (other.rpgItemRewardIDs.equals(rpgItemRewardIDs) == false) {
-				return false;
-			}
-			if (other.rpgItemRewardAmounts.equals(rpgItemRewardAmounts) == false) {
 				return false;
 			}
 			if (other.mcmmoAmounts.equals(mcmmoAmounts) == false) {
@@ -641,8 +652,6 @@ public class Quest {
 		hash = 53 * hash + (this.commands != null ? this.commands.hashCode() : 0);
 		hash = 53 * hash + (this.permissions != null ? this.permissions.hashCode() : 0);
 		hash = 53 * hash + (this.itemRewards != null ? this.itemRewards.hashCode() : 0);
-		hash = 53 * hash + (this.rpgItemRewardIDs != null ? this.rpgItemRewardIDs.hashCode() : 0);
-		hash = 53 * hash + (this.rpgItemRewardAmounts != null ? this.rpgItemRewardAmounts.hashCode() : 0);
 		hash = 53 * hash + (this.mcmmoSkills != null ? this.mcmmoSkills.hashCode() : 0);
 		hash = 53 * hash + (this.mcmmoAmounts != null ? this.mcmmoAmounts.hashCode() : 0);
 		hash = 53 * hash + (this.heroesClasses != null ? this.heroesClasses.hashCode() : 0);

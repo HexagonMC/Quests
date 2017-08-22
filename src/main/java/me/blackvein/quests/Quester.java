@@ -13,8 +13,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -48,6 +46,7 @@ public class Quester {
 	boolean editorMode = false;
 	boolean hasJournal = false;
 	public String questToTake;
+	public ConcurrentHashMap<Integer, Quest> timers = new ConcurrentHashMap<>();
 	public Map<Quest, Integer> currentQuests = new ConcurrentHashMap<Quest, Integer>() {
 
 		private static final long serialVersionUID = 6361484975823846780L;
@@ -313,6 +312,12 @@ public class Quester {
 				accepted = accepted.replaceAll("<quest>", q.name);
 				player.sendMessage(ChatColor.GREEN + accepted);
 				player.sendMessage("");
+				if (plugin.showQuestTitles) {
+					Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "title " + player.getName()
+							+ " title " + "{\"text\":\"" + Lang.get("quest") + " " + Lang.get("accepted") +  "\",\"color\":\"gold\"}");
+					Bukkit.getServer().dispatchCommand(Bukkit.getServer().getConsoleSender(), "title " + player.getName()
+							+ " subtitle " + "{\"text\":\"" + q.name + "\",\"color\":\"yellow\"}");
+				}
 			}
 			String msg = Lang.get("questObjectivesTitle");
 			msg = msg.replaceAll("<quest>", q.name);
@@ -358,24 +363,24 @@ public class Quester {
 		LinkedList<String> unfinishedObjectives = new LinkedList<String>();
 		LinkedList<String> finishedObjectives = new LinkedList<String>();
 		LinkedList<String> objectives = new LinkedList<String>();
-		for (ItemStack e : getCurrentStage(quest).blocksToDamage) {
-			for (ItemStack e2 : getQuestData(quest).blocksDamaged) {
-				if (e2.getType().equals(e.getType()) && e2.getDurability() == e.getDurability()) {
-					if (e2.getAmount() < e.getAmount()) {
-						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("damage") + " " + Items.itemByStack(e2).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
-					} else {
-						finishedObjectives.add(ChatColor.GRAY + Lang.get("damage") + " " + Items.itemByStack(e2).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
-					}
-				}
-			}
-		}
 		for (ItemStack e : getCurrentStage(quest).blocksToBreak) {
 			for (ItemStack e2 : getQuestData(quest).blocksBroken) {
 				if (e2.getType().equals(e.getType()) && e2.getDurability() == e.getDurability()) {
 					if (e2.getAmount() < e.getAmount()) {
-						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("break") + " " + Items.itemByStack(e2).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
+						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("break") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
 					} else {
-						finishedObjectives.add(ChatColor.GRAY + Lang.get("break") + " " + Items.itemByStack(e2).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
+						finishedObjectives.add(ChatColor.GRAY + Lang.get("break") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
+					}
+				}
+			}
+		}
+		for (ItemStack e : getCurrentStage(quest).blocksToDamage) {
+			for (ItemStack e2 : getQuestData(quest).blocksDamaged) {
+				if (e2.getType().equals(e.getType()) && e2.getDurability() == e.getDurability()) {
+					if (e2.getAmount() < e.getAmount()) {
+						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("damage") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
+					} else {
+						finishedObjectives.add(ChatColor.GRAY + Lang.get("damage") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
 					}
 				}
 			}
@@ -384,9 +389,9 @@ public class Quester {
 			for (ItemStack e2 : getQuestData(quest).blocksPlaced) {
 				if (e2.getType().equals(e.getType()) && e2.getDurability() == e.getDurability()) {
 					if (e2.getAmount() < e.getAmount()) {
-						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("place") + " " + Items.itemByStack(e2).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
+						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("place") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
 					} else {
-						finishedObjectives.add(ChatColor.GRAY + Lang.get("place") + " " + Items.itemByStack(e2).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
+						finishedObjectives.add(ChatColor.GRAY + Lang.get("place") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
 					}
 				}
 			}
@@ -395,9 +400,9 @@ public class Quester {
 			for (ItemStack e2 : getQuestData(quest).blocksUsed) {
 				if (e2.getType().equals(e.getType()) && e2.getDurability() == e.getDurability()) {
 					if (e2.getAmount() < e.getAmount()) {
-						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("use") + " " + Items.itemByStack(e2).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
+						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("use") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
 					} else {
-						finishedObjectives.add(ChatColor.GRAY + Lang.get("use") + " " + Items.itemByStack(e2).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
+						finishedObjectives.add(ChatColor.GRAY + Lang.get("use") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
 					}
 				}
 			}
@@ -406,9 +411,9 @@ public class Quester {
 			for (ItemStack e2 : getQuestData(quest).blocksCut) {
 				if (e2.getType().equals(e.getType()) && e2.getDurability() == e.getDurability()) {
 					if (e2.getAmount() < e.getAmount()) {
-						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("cut") + " " + Items.itemByStack(e2).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
+						unfinishedObjectives.add(ChatColor.GREEN + Lang.get("cut") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GREEN + ": " + e2.getAmount() + "/" + e.getAmount());
 					} else {
-						finishedObjectives.add(ChatColor.GRAY + Lang.get("cut") + " " + Items.itemByStack(e2).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
+						finishedObjectives.add(ChatColor.GRAY + Lang.get("cut") + " " + Items.itemByType(e2.getType()).getName() + ChatColor.GRAY + ": " + e2.getAmount() + "/" + e.getAmount());
 					}
 				}
 			}
@@ -497,10 +502,12 @@ public class Quester {
 				finishedObjectives.add(ChatColor.GRAY + Lang.get("killPlayer") + ChatColor.GRAY + ": " + getQuestData(quest).getPlayersKilled() + "/" + getCurrentStage(quest).playersToKill);
 			}
 		}
+		int index2 = 0;
 		for (ItemStack is : getCurrentStage(quest).itemsToDeliver) {
 			int delivered = getQuestData(quest).itemsDelivered.get(is);
 			int amt = is.getAmount();
-			Integer npc = getCurrentStage(quest).itemDeliveryTargets.get(getCurrentStage(quest).itemsToDeliver.indexOf(is));
+			Integer npc = getCurrentStage(quest).itemDeliveryTargets.get(index2);
+			index2++;
 			if (delivered < amt) {
 				String obj = Lang.get("deliver");
 				obj = obj.replaceAll("<item>", ItemUtil.getName(is));
@@ -676,33 +683,7 @@ public class Quester {
 		}
 		return false;
 	}
-
-	public void damageBlock(Quest quest, ItemStack m) {
-		ItemStack temp = m;
-		temp.setAmount(0);
-		ItemStack damaged = temp;
-		ItemStack toDamage = temp;
-		for (ItemStack is : getQuestData(quest).blocksDamaged) {
-			if (m.getType() == is.getType() && m.getDurability() == is.getDurability()) {
-				damaged = is;
-			}
-		}
-		for (ItemStack is : getCurrentStage(quest).blocksToDamage) {
-			if (m.getType() == is.getType() && m.getDurability() == is.getDurability()) {
-				toDamage = is;
-			}
-		}
-		if (damaged.getAmount() < toDamage.getAmount()) {
-			ItemStack newDamaged = damaged;
-			newDamaged.setAmount(damaged.getAmount() + 1);
-			// TODO is this correct?
-			getQuestData(quest).blocksDamaged.set(getQuestData(quest).blocksDamaged.indexOf(damaged), newDamaged);
-			if (damaged.getAmount() == toDamage.getAmount()) {
-				finishObjective(quest, "damageBlock", m, null, null, null, null, null, null, null, null, null);
-			}
-		}
-	}
-
+	
 	public void breakBlock(Quest quest, ItemStack m) {
 		ItemStack temp = m;
 		temp.setAmount(0);
@@ -721,10 +702,34 @@ public class Quester {
 		if (broken.getAmount() < toBreak.getAmount()) {
 			ItemStack newBroken = broken;
 			newBroken.setAmount(broken.getAmount() + 1);
-			// TODO is this correct?
 			getQuestData(quest).blocksBroken.set(getQuestData(quest).blocksBroken.indexOf(broken), newBroken);
 			if (broken.getAmount() == toBreak.getAmount()) {
 				finishObjective(quest, "breakBlock", m, null, null, null, null, null, null, null, null, null);
+			}
+		}
+	}
+	
+	public void damageBlock(Quest quest, ItemStack m) {
+		ItemStack temp = m;
+		temp.setAmount(0);
+		ItemStack damaged = temp;
+		ItemStack toDamage = temp;
+		for (ItemStack is : getQuestData(quest).blocksDamaged) {
+			if (m.getType() == is.getType() && m.getDurability() == is.getDurability()) {
+				damaged = is;
+			}
+		}
+		for (ItemStack is : getCurrentStage(quest).blocksToDamage) {
+			if (m.getType() == is.getType() && m.getDurability() == is.getDurability()) {
+				toDamage = is;
+			}
+		}
+		if (damaged.getAmount() < toDamage.getAmount()) {
+			ItemStack newDamaged = damaged;
+			newDamaged.setAmount(damaged.getAmount() + 1);
+			getQuestData(quest).blocksDamaged.set(getQuestData(quest).blocksDamaged.indexOf(damaged), newDamaged);
+			if (damaged.getAmount() == toDamage.getAmount()) {
+				finishObjective(quest, "damageBlock", m, null, null, null, null, null, null, null, null, null);
 			}
 		}
 	}
@@ -747,7 +752,6 @@ public class Quester {
 		if (placed.getAmount() < toPlace.getAmount()) {
 			ItemStack newplaced = placed;
 			newplaced.setAmount(placed.getAmount() + 1);
-			// TODO is this correct?
 			getQuestData(quest).blocksPlaced.set(getQuestData(quest).blocksPlaced.indexOf(placed), newplaced);
 			if (placed.getAmount() == toPlace.getAmount()) {
 				finishObjective(quest, "placeBlock", m, null, null, null, null, null, null, null, null, null);
@@ -773,7 +777,6 @@ public class Quester {
 		if (used.getAmount() < toUse.getAmount()) {
 			ItemStack newUsed = used;
 			newUsed.setAmount(used.getAmount() + 1);
-			// TODO is this correct?
 			getQuestData(quest).blocksUsed.set(getQuestData(quest).blocksUsed.indexOf(used), newUsed);
 			if (used.getAmount() == toUse.getAmount()) {
 				finishObjective(quest, "useBlock", m, null, null, null, null, null, null, null, null, null);
@@ -799,7 +802,6 @@ public class Quester {
 		if (cut.getAmount() < toCut.getAmount()) {
 			ItemStack newCut = cut;
 			newCut.setAmount(cut.getAmount() + 1);
-			// TODO is this correct?
 			getQuestData(quest).blocksCut.set(getQuestData(quest).blocksCut.indexOf(cut), newCut);
 			if (cut.getAmount() == toCut.getAmount()) {
 				finishObjective(quest, "cutBlock", m, null, null, null, null, null, null, null, null, null);
@@ -932,9 +934,9 @@ public class Quester {
 					}
 				}
 			} catch (IndexOutOfBoundsException e) {
-				System.out.println("An error has occurred with Quests. Please report on Github. Include the info below");
-				System.out.println("index = " + getQuestData(quest).locationsReached.indexOf(location));
-				System.out.println("locationsReached = " + getQuestData(quest).locationsReached.toString());
+				plugin.getLogger().severe("An error has occurred with Quests. Please report on Github. Include the info below");
+				plugin.getLogger().severe("index = " + getQuestData(quest).locationsReached.indexOf(location));
+				plugin.getLogger().severe("locationsReached = " + getQuestData(quest).locationsReached.toString());
 				e.printStackTrace();
 			}
 		}
@@ -1061,20 +1063,20 @@ public class Quester {
 			if (testComplete(quest)) {
 				quest.nextStage(this);
 			}
-		} else if (objective.equalsIgnoreCase("damageBlock")) {
-			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("damage") + " " + prettyItemString(material.getType().name());
-			String stack = getQuestData(quest).blocksDamaged.toString();
-			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
-			message = message + " " + amount + "/" + amount;
-			if (testComplete(quest)) {
-				quest.nextStage(this);
-			}
 		} else if (objective.equalsIgnoreCase("breakBlock")) {
 			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("break") + " " + prettyItemString(material.getType().name());
 			String stack = getQuestData(quest).blocksBroken.toString();
 			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
 			message = message + " " + amount + "/" + amount;
 			p.sendMessage(message);
+			if (testComplete(quest)) {
+				quest.nextStage(this);
+			}
+		} else if (objective.equalsIgnoreCase("damageBlock")) {
+			String message = ChatColor.GREEN + "(" + Lang.get("completed") + ") " + Lang.get("damage") + " " + prettyItemString(material.getType().name());
+			String stack = getQuestData(quest).blocksDamaged.toString();
+			String amount = stack.substring(stack.lastIndexOf(" x ") + 3).replace("}]", "");
+			message = message + " " + amount + "/" + amount;
 			if (testComplete(quest)) {
 				quest.nextStage(this);
 			}
@@ -1224,18 +1226,6 @@ public class Quester {
 	public void addEmpties(Quest quest) {
 		QuestData data = new QuestData(this);
 		data.setDoJournalUpdate(false);
-		if (quest.getStage(0).blocksToDamage.isEmpty() == false) {
-			for (ItemStack i : quest.getStage(0).blocksToDamage) {
-				if (data.blocksDamaged.indexOf(i) != -1) {
-					// TODO Will this ever happen?
-					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
-					data.blocksDamaged.set(data.blocksDamaged.indexOf(temp), temp);
-				} else {
-					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
-					data.blocksDamaged.add(temp);
-				}
-			}
-		}
 		if (quest.getStage(0).blocksToBreak.isEmpty() == false) {
 			for (ItemStack i : quest.getStage(0).blocksToBreak) {
 				if (data.blocksBroken.indexOf(i) != -1) {
@@ -1245,6 +1235,18 @@ public class Quester {
 				} else {
 					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
 					data.blocksBroken.add(temp);
+				}
+			}
+		}
+		if (quest.getStage(0).blocksToDamage.isEmpty() == false) {
+			for (ItemStack i : quest.getStage(0).blocksToDamage) {
+				if (data.blocksDamaged.indexOf(i) != -1) {
+					// TODO Will this ever happen?
+					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
+					data.blocksDamaged.set(data.blocksDamaged.indexOf(temp), temp);
+				} else {
+					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
+					data.blocksDamaged.add(temp);
 				}
 			}
 		}
@@ -1354,18 +1356,6 @@ public class Quester {
 	public void addEmptiesFor(Quest quest, int stage) {
 		QuestData data = new QuestData(this);
 		data.setDoJournalUpdate(false);
-		if (quest.getStage(stage).blocksToDamage.isEmpty() == false) {
-			for (ItemStack i : quest.getStage(stage).blocksToDamage) {
-				if (data.blocksDamaged.indexOf(i) != -1) {
-					// TODO Will this ever happen?
-					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
-					data.blocksDamaged.set(data.blocksDamaged.indexOf(temp), temp);
-				} else {
-					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
-					data.blocksDamaged.add(temp);
-				}
-			}
-		}
 		if (quest.getStage(stage).blocksToBreak.isEmpty() == false) {
 			for (ItemStack i : quest.getStage(stage).blocksToBreak) {
 				if (data.blocksBroken.indexOf(i) != -1) {
@@ -1375,6 +1365,18 @@ public class Quester {
 				} else {
 					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
 					data.blocksBroken.add(temp);
+				}
+			}
+		}
+		if (quest.getStage(stage).blocksToDamage.isEmpty() == false) {
+			for (ItemStack i : quest.getStage(stage).blocksToDamage) {
+				if (data.blocksDamaged.indexOf(i) != -1) {
+					// TODO Will this ever happen?
+					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
+					data.blocksDamaged.set(data.blocksDamaged.indexOf(temp), temp);
+				} else {
+					ItemStack temp = new ItemStack(i.getType(), 0, i.getDurability());
+					data.blocksDamaged.add(temp);
 				}
 			}
 		}
@@ -1450,13 +1452,6 @@ public class Quester {
 				data.citizenNumKilled.add(0);
 			}
 		}
-		if (quest.getStage(stage).blocksToCut.isEmpty() == false) {
-			for (ItemStack is : quest.getStage(stage).blocksToCut) {
-				// TODO should be .set() ?
-				is.setAmount(0);
-				data.blocksCut.add(is);
-			}
-		}
 		if (quest.getStage(stage).locationsToReach.isEmpty() == false) {
 			for (Location l : quest.getStage(stage).locationsToReach) {
 				data.locationsReached.add(l);
@@ -1495,7 +1490,7 @@ public class Quester {
 		return capitalized;
 	}
 
-	// TODO eliminate and replace all with Items.itemByStack(is).getName()
+	// TODO eliminate and replace all with Items.itemByType(is.getType()).getName()
 	public static String prettyItemString(String itemName) {
 		String baseString = Material.matchMaterial(itemName).toString();
 		String[] substrings = baseString.split("_");
@@ -1586,7 +1581,7 @@ public class Quester {
 	public void saveData() {
 		FileConfiguration data = getBaseData();
 		try {
-			data.save(new File(plugin.getDataFolder(), "data/" + id + ".yml"));
+			data.save(new File(plugin.getDataFolder(), "data" + File.separator + id + ".yml"));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1624,19 +1619,6 @@ public class Quester {
 				QuestData questData = getQuestData(quest);
 				if (questData == null)
 					continue;
-				if (questData.blocksDamaged.isEmpty() == false) {
-					LinkedList<String> blockNames = new LinkedList<String>();
-					LinkedList<Integer> blockAmounts = new LinkedList<Integer>();
-					LinkedList<Short> blockDurability = new LinkedList<Short>();
-					for (ItemStack m : questData.blocksDamaged) {
-						blockNames.add(m.getType().name());
-						blockAmounts.add(m.getAmount());
-						blockDurability.add(m.getDurability());
-					}
-					questSec.set("blocks-damaged-names", blockNames);
-					questSec.set("blocks-damaged-amounts", blockAmounts);
-					questSec.set("blocks-damaged-durability", blockDurability);
-				}
 				if (questData.blocksBroken.isEmpty() == false) {
 					LinkedList<String> blockNames = new LinkedList<String>();
 					LinkedList<Integer> blockAmounts = new LinkedList<Integer>();
@@ -1649,6 +1631,19 @@ public class Quester {
 					questSec.set("blocks-broken-names", blockNames);
 					questSec.set("blocks-broken-amounts", blockAmounts);
 					questSec.set("blocks-broken-durability", blockDurability);
+				}
+				if (questData.blocksDamaged.isEmpty() == false) {
+					LinkedList<String> blockNames = new LinkedList<String>();
+					LinkedList<Integer> blockAmounts = new LinkedList<Integer>();
+					LinkedList<Short> blockDurability = new LinkedList<Short>();
+					for (ItemStack m : questData.blocksDamaged) {
+						blockNames.add(m.getType().name());
+						blockAmounts.add(m.getAmount());
+						blockDurability.add(m.getDurability());
+					}
+					questSec.set("blocks-damaged-names", blockNames);
+					questSec.set("blocks-damaged-amounts", blockAmounts);
+					questSec.set("blocks-damaged-durability", blockDurability);
 				}
 				if (questData.blocksPlaced.isEmpty() == false) {
 					LinkedList<String> blockNames = new LinkedList<String>();
@@ -1868,7 +1863,6 @@ public class Quester {
 			for (String s : completedTimes.keySet()) {
 				questTimeNames.add(s);
 				questTimes.add(completedTimes.get(s));
-				System.out.println("Saving = " + s + "  " + completedTimes.get(s));
 			}
 			data.set("completedRedoableQuests", questTimeNames);
 			data.set("completedQuestTimes", questTimes);
@@ -1896,10 +1890,10 @@ public class Quester {
 	public boolean loadData() {
 		FileConfiguration data = new YamlConfiguration();
 		try {
-			File dataFile = new File(plugin.getDataFolder(), "data/" + id.toString() + ".yml");
+			File dataFile = new File(plugin.getDataFolder(), "data" + File.separator + id.toString() + ".yml");
 			if (dataFile.exists() == false) {
 				OfflinePlayer p = getOfflinePlayer();
-				dataFile = new File(plugin.getDataFolder(), "data/" + p.getName() + ".yml");
+				dataFile = new File(plugin.getDataFolder(), "data" + File.separator + p.getName() + ".yml");
 				if (dataFile.exists() == false) {
 					return false;
 				}
@@ -1968,42 +1962,40 @@ public class Quester {
 				stage = getCurrentStage(quest);
 				if (stage == null) {
 					quest.completeQuest(this);
-					plugin.getLogger().log(Level.SEVERE, "[Quests] Invalid stage number for player: \"" + id + "\" on Quest \"" + quest.name + "\". Quest ended.");
+					plugin.getLogger().severe("[Quests] Invalid stage number for player: \"" + id + "\" on Quest \"" + quest.name + "\". Quest ended.");
 					continue;
 				}
 				addEmpties(quest);
 				if (questSec == null)
 					continue;
-				if (questSec.contains("blocks-damaged-names")) {
-					List<String> names = questSec.getStringList("blocks-damaged-names");
-					List<Integer> amounts = questSec.getIntegerList("blocks-damaged-amounts");
-					List<Short> durability = questSec.getShortList("blocks-damaged-durability");
-					for (String s : names) {
-						ItemStack is;
-						// if (durability.get(names.indexOf(s)) != -1) {
-						if (durability.indexOf((short)names.indexOf(s)) != -1) {
-							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), durability.get(names.indexOf(s)));
-						} else {
-							// Legacy
-							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), (short) 0);
-						}
-						getQuestData(quest).blocksDamaged.add(is); // TODO should be .set() ?
-					}
-				}
 				if (questSec.contains("blocks-broken-names")) {
 					List<String> names = questSec.getStringList("blocks-broken-names");
 					List<Integer> amounts = questSec.getIntegerList("blocks-broken-amounts");
 					List<Short> durability = questSec.getShortList("blocks-broken-durability");
 					for (String s : names) {
 						ItemStack is;
-						// if (durability.get(names.indexOf(s)) != -1) {
 						if (durability.indexOf((short)names.indexOf(s)) != -1) {
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), durability.get(names.indexOf(s)));
 						} else {
 							// Legacy
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), (short) 0);
 						}
-						getQuestData(quest).blocksBroken.add(is); // TODO should be .set() ?
+						getQuestData(quest).blocksBroken.set(names.indexOf(s), is);
+					}
+				}
+				if (questSec.contains("blocks-damaged-names")) {
+					List<String> names = questSec.getStringList("blocks-damaged-names");
+					List<Integer> amounts = questSec.getIntegerList("blocks-damaged-amounts");
+					List<Short> durability = questSec.getShortList("blocks-damaged-durability");
+					for (String s : names) {
+						ItemStack is;
+						if (durability.indexOf((short)names.indexOf(s)) != -1) {
+							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), durability.get(names.indexOf(s)));
+						} else {
+							// Legacy
+							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), (short) 0);
+						}
+						getQuestData(quest).blocksDamaged.set(names.indexOf(s), is);
 					}
 				}
 				if (questSec.contains("blocks-placed-names")) {
@@ -2012,14 +2004,13 @@ public class Quester {
 					List<Short> durability = questSec.getShortList("blocks-placed-durability");
 					for (String s : names) {
 						ItemStack is;
-						// if (durability.get(names.indexOf(s)) != -1) {
 						if (durability.indexOf((short)names.indexOf(s)) != -1) {
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), durability.get(names.indexOf(s)));
 						} else {
 							// Legacy
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), (short) 0);
 						}
-						getQuestData(quest).blocksPlaced.add(is); // TODO should be .set() ?
+						getQuestData(quest).blocksPlaced.set(names.indexOf(s), is);
 					}
 				}
 				if (questSec.contains("blocks-used-names")) {
@@ -2028,14 +2019,13 @@ public class Quester {
 					List<Short> durability = questSec.getShortList("blocks-used-durability");
 					for (String s : names) {
 						ItemStack is;
-						// if (durability.get(names.indexOf(s)) != -1) {
 						if (durability.indexOf((short)names.indexOf(s)) != -1) {
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), durability.get(names.indexOf(s)));
 						} else {
 							// Legacy
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), (short) 0);
 						}
-						getQuestData(quest).blocksUsed.add(is); // TODO should be .set() ?
+						getQuestData(quest).blocksUsed.set(names.indexOf(s), is);
 					}
 				}
 				if (questSec.contains("blocks-cut-names")) {
@@ -2044,14 +2034,13 @@ public class Quester {
 					List<Short> durability = questSec.getShortList("blocks-cut-durability");
 					for (String s : names) {
 						ItemStack is;
-						// if (durability.get(names.indexOf(s)) != -1) {
 						if (durability.indexOf((short)names.indexOf(s)) != -1) {
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), durability.get(names.indexOf(s)));
 						} else {
 							// Legacy
 							is = new ItemStack(Material.matchMaterial(s), amounts.get(names.indexOf(s)), (short) 0);
 						}
-						getQuestData(quest).blocksCut.add(is); // TODO should be .set() ?
+						getQuestData(quest).blocksCut.set(names.indexOf(s), is);
 					}
 				}
 				if (questSec.contains("fish-caught")) {
@@ -2223,17 +2212,17 @@ public class Quester {
 
 	public static ConfigurationSection getLegacyQuestData(FileConfiguration questSec, String questName) {
 		ConfigurationSection newData = questSec.createSection("questData");
-		if (questSec.contains("blocks-damaged-names")) {
-			List<String> names = questSec.getStringList("blocks-damaged-names");
-			List<Integer> amounts = questSec.getIntegerList("blocks-damaged-amounts");
-			newData.set(questName + ".blocks-damaged-names", names);
-			newData.set(questName + ".blocks-damaged-amounts", amounts);
-		}
 		if (questSec.contains("blocks-broken-names")) {
 			List<String> names = questSec.getStringList("blocks-broken-names");
 			List<Integer> amounts = questSec.getIntegerList("blocks-broken-amounts");
 			newData.set(questName + ".blocks-broken-names", names);
 			newData.set(questName + ".blocks-broken-amounts", amounts);
+		}
+		if (questSec.contains("blocks-damaged-names")) {
+			List<String> names = questSec.getStringList("blocks-damaged-names");
+			List<Integer> amounts = questSec.getIntegerList("blocks-damaged-amounts");
+			newData.set(questName + ".blocks-damaged-names", names);
+			newData.set(questName + ".blocks-damaged-amounts", amounts);
 		}
 		if (questSec.contains("blocks-placed-names")) {
 			List<String> names = questSec.getStringList("blocks-placed-names");
@@ -2516,7 +2505,12 @@ public class Quester {
 				meta.setDisplayName(ChatColor.DARK_PURPLE + Quests.parseString(quests.get(i).getName(), npc));
 				if (!meta.hasLore()) {
 					LinkedList<String> lines = new LinkedList<String>();
-					lines = MiscUtil.makeLines(quests.get(i).description, " ", 40, ChatColor.DARK_GREEN);
+					String desc = quests.get(i).description;
+					if (desc == ChatColor.stripColor(desc)) {
+						lines = MiscUtil.makeLines(desc, " ", 40, ChatColor.DARK_GREEN);
+					} else {
+						lines = MiscUtil.makeLines(desc, " ", 40, null);
+					}
 					meta.setLore(lines);
 				}
 				display.setItemMeta(meta);
@@ -2534,7 +2528,7 @@ public class Quester {
 				questData.remove(quest);
 			}
 		} catch (Exception ex) {
-			Logger.getLogger(Quests.class.getName()).log(Level.SEVERE, null, ex);
+			ex.printStackTrace();
 		}
 	}
 
@@ -2542,7 +2536,7 @@ public class Quester {
 		try {
 			completedQuests.remove(quest.name);
 		} catch (Exception ex) {
-			Logger.getLogger(Quests.class.getName()).log(Level.SEVERE, null, ex);
+			ex.printStackTrace();
 		}
 	}
 
@@ -2552,7 +2546,7 @@ public class Quester {
 			questData.clear();
 			amountsCompleted.clear();
 		} catch (Exception ex) {
-			Logger.getLogger(Quests.class.getName()).log(Level.SEVERE, null, ex);
+			ex.printStackTrace();
 		}
 	}
 
@@ -2560,7 +2554,7 @@ public class Quester {
 		try {
 			currentQuests.put(key, val);
 		} catch (Exception ex) {
-			Logger.getLogger(Quests.class.getName()).log(Level.SEVERE, null, ex);
+			ex.printStackTrace();
 		}
 	}
 
@@ -2568,7 +2562,7 @@ public class Quester {
 		try {
 			questData.put(key, val);
 		} catch (Exception ex) {
-			Logger.getLogger(Quests.class.getName()).log(Level.SEVERE, null, ex);
+			ex.printStackTrace();
 		}
 	}
 

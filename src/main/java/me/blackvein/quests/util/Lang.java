@@ -272,12 +272,13 @@ public class Lang {
 		langMap.put("stageEditorCustomAlreadyAdded", "That custom objective has already been added!");
 		langMap.put("stageEditorCustomCleared", "Custom objectives cleared.");
 		langMap.put("stageEditorCustomDataPrompt", "Enter value for <data>:");
-		langMap.put("stageEditorEnterBlockNames", "Enter block names, separating each one by a space, or enter \'cancel\' to return.");
-		langMap.put("stageEditorBreakBlocksPrompt", "Enter block amounts (numbers), separating each one by a space, or enter \'cancel\' to return.");
+		langMap.put("stageEditorEnterBlockNames", "Enter block names (or IDs), separating each one by a space, or enter \'cancel\' to return.");
+		langMap.put("stageEditorBreakBlocksPrompt", "Enter break amounts (numbers), separating each one by a space, or enter \'cancel\' to return.");
 		langMap.put("stageEditorDamageBlocksPrompt", "Enter damage amounts (numbers), separating each one by a space, or enter \'cancel\' to return.");
 		langMap.put("stageEditorPlaceBlocksPrompt", "Enter place amounts (numbers), separating each one by a space, or enter \'cancel\' to return.");
 		langMap.put("stageEditorUseBlocksPrompt", "Enter use amounts (numbers), separating each one by a space, or enter \'cancel\' to return.");
 		langMap.put("stageEditorCutBlocksPrompt", "Enter cut amounts (numbers), separating each one by a space, or enter \'cancel\' to return.");
+		langMap.put("stageEditorEnterBlockDurability", "Enter block durability (numbers), separating each one by a space, or enter \'cancel\' to return.");
 		langMap.put("stageEditorCatchFishPrompt", "Enter number of fish to catch, or 0 to clear the fish catch objective, or -1 to cancel");
 		langMap.put("stageEditorKillPlayerPrompt", "Enter number of players to kill, or 0 to clear the player kill objective, or -1 to cancel");
 		langMap.put("stageEditorEnchantTypePrompt", "Enter enchantment names, separating each one by a comma, or enter \'cancel\' to return.");
@@ -432,6 +433,9 @@ public class Lang {
 		langMap.put("eventEditorSetHunger", "Set player hunger level");
 		langMap.put("eventEditorSetSaturation", "Set player saturation level");
 		langMap.put("eventEditorSetHealth", "Set player health level");
+		langMap.put("eventEditorEnterTimerSeconds", "Set number of seconds left before the quest fails (use cancel-timer event to cancel timers)");
+		langMap.put("eventEditorSetTimer", "Set time to fail quest");
+		langMap.put("eventEditorCancelTimer", "Cancel the quest timer");
 		langMap.put("eventEditorSetTeleport", "Set player teleport location");
 		langMap.put("eventEditorSetCommands", "Set commands to execute");
 		langMap.put("eventEditorItems", "Event Items");
@@ -929,7 +933,9 @@ public class Lang {
 		langMap.put("quest", "Quest");
 		langMap.put("quests", "Quests");
 		langMap.put("createdBy", "Created by");
+		langMap.put("continuedBy", "and continued by");
 		langMap.put("questPoints", "Quest Points");
+		langMap.put("accepted", "Accepted");
 		langMap.put("complete", "Complete");
 		langMap.put("redoable", "Redoable");
 		langMap.put("usage", "Usage");
@@ -942,6 +948,9 @@ public class Lang {
 		langMap.put("valRequired", "Value required");
 		langMap.put("enchantedItem", "*Enchanted*");
 		langMap.put("experience", "Experience");
+		// Timers
+		langMap.put("timerMessage", "<green>Time left to finish the quest/stage: <red>%s seconds");
+		langMap.put("timerStart", "<green>You have <red>%s seconds <green>to finish this quest/stage");
 		//
 		// Error Messages
 		langMap.put("questErrorReadingFile", "Error reading Quests file.");
